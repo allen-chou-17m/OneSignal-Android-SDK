@@ -34,8 +34,9 @@ import android.database.Cursor;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.onesignal.OneSignalDbContract.NotificationTable;
 
@@ -110,19 +111,24 @@ class NotificationBundleProcessor {
       notifJob.showAsAlert = OneSignal.getInAppAlertNotificationEnabled() && OneSignal.isAppActive();
       processCollapseKey(notifJob);
 
-      boolean doDisplay = shouldDisplayNotif(notifJob);
-      if (doDisplay)
-         GenerateNotification.fromJsonPayload(notifJob);
+      try {
+         boolean doDisplay = shouldDisplayNotif(notifJob);
+         if (doDisplay)
+            GenerateNotification.fromJsonPayload(notifJob);
 
-      if (!notifJob.restoring && !notifJob.isInAppPreviewPush) {
-         processNotification(notifJob, false);
-         try {
-            JSONObject jsonObject = new JSONObject(notifJob.jsonPayload.toString());
-            jsonObject.put(BUNDLE_KEY_ANDROID_NOTIFICATION_ID, notifJob.getAndroidId());
-            OneSignal.handleNotificationReceived(newJsonArray(jsonObject), true, notifJob.showAsAlert);
-         } catch (JSONException t) {
-            t.printStackTrace();
+         if (!notifJob.restoring && !notifJob.isInAppPreviewPush) {
+            processNotification(notifJob, false);
+            try {
+               JSONObject jsonObject = new JSONObject(notifJob.jsonPayload.toString());
+               jsonObject.put(BUNDLE_KEY_ANDROID_NOTIFICATION_ID, notifJob.getAndroidId());
+               OneSignal.handleNotificationReceived(newJsonArray(jsonObject), true, notifJob.showAsAlert);
+            } catch (JSONException t) {
+               t.printStackTrace();
+            }
          }
+         // we could receive DeadSystemException/RuntimeException on android 5/8
+      } catch(Throwable ex) {
+         ex.printStackTrace();
       }
 
       return notifJob.getAndroidId();
