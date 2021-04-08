@@ -39,6 +39,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.onesignal.OneSignalDbContract.NotificationTable;
+import com.onesignal.bundlecompat.BundleCompat;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -86,8 +87,9 @@ class NotificationBundleProcessor {
 
          if (!notifJob.restoring &&
              !notifJob.isInAppPreviewPush &&
-             OneSignal.notValidOrDuplicated(context, notifJob.jsonPayload))
+             OneSignal.notValidOrDuplicated(context, notifJob.jsonPayload)) {
             return;
+         }
 
          if (bundle.containsKey("android_notif_id")) {
             if (overrideSettings == null)

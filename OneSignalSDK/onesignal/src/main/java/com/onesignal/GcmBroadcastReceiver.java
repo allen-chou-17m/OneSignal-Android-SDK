@@ -40,152 +40,154 @@ import androidx.annotation.Nullable;
 import androidx.legacy.content.WakefulBroadcastReceiver;
 
 import com.onesignal.NotificationBundleProcessor.ProcessedBundleResult;
+import com.onesignal.bundlecompat.BundleCompat;
+import com.onesignal.bundlecompat.BundleCompatBundle;
+import com.onesignal.bundlecompat.BundleCompatFactory;
 
 // This is the entry point when a FCM / GCM payload is received from the Google Play services app
 // TODO: 4.0.0 - Update to use <action android:name="com.google.firebase.MESSAGING_EVENT"/>
 public class GcmBroadcastReceiver extends WakefulBroadcastReceiver {
 
-   private static final String GCM_RECEIVE_ACTION = "com.google.android.c2dm.intent.RECEIVE";
-   private static final String GCM_TYPE = "gcm";
-   private static final String MESSAGE_TYPE_EXTRA_KEY = "message_type";
+    private static final String GCM_RECEIVE_ACTION = "com.google.android.c2dm.intent.RECEIVE";
+    private static final String GCM_TYPE = "gcm";
+    private static final String MESSAGE_TYPE_EXTRA_KEY = "message_type";
 
-   private static boolean isGcmMessage(Intent intent) {
-      if (GCM_RECEIVE_ACTION.equals(intent.getAction())) {
-         String messageType = intent.getStringExtra(MESSAGE_TYPE_EXTRA_KEY);
-         return (messageType == null || GCM_TYPE.equals(messageType));
-      }
-      return false;
-   }
+    private static boolean isGcmMessage(Intent intent) {
+        if (GCM_RECEIVE_ACTION.equals(intent.getAction())) {
+            String messageType = intent.getStringExtra(MESSAGE_TYPE_EXTRA_KEY);
+            return (messageType == null || GCM_TYPE.equals(messageType));
+        }
+        return false;
+    }
 
-   @Override
-   public void onReceive(Context context, Intent intent) {
-      // Do not process token update messages here.
-      // They are also non-ordered broadcasts.
-      Bundle bundle = intent.getExtras();
-      if (bundle == null || "google.com/iid".equals(bundle.getString("from")))
-         return;
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        // Do not process token update messages here.
+        // They are also non-ordered broadcasts.
+        Bundle bundle = intent.getExtras();
+        if (bundle == null || "google.com/iid".equals(bundle.getString("from")))
+            return;
 
-      OneSignal.setAppContext(context);
+        OneSignal.setAppContext(context);
 
-      ProcessedBundleResult processedResult = processOrderBroadcast(context, intent, bundle);
+        ProcessedBundleResult processedResult = processOrderBroadcast(context, intent, bundle);
 
-      // Null means this isn't a GCM / FCM message.
-      if (processedResult == null) {
-         setSuccessfulResultCode();
-         return;
-      }
+        // Null means this isn't a GCM / FCM message.
+        if (processedResult == null) {
+            setSuccessfulResultCode();
+            return;
+        }
 
-      // Prevent other GCM receivers from firing if;
-      //   This is a duplicated GCM message
-      //   OR app developer setup a extender service to handle the notification.
-      if (processedResult.isDup || processedResult.hasExtenderService) {
-         // Abort to prevent other GCM receivers from process this Intent.
-         setAbort();
-         return;
-      }
+        // Prevent other GCM receivers from firing if;
+        //   This is a duplicated GCM message
+        //   OR app developer setup a extender service to handle the notification.
+        if (processedResult.isDup || processedResult.hasExtenderService) {
+            // Abort to prevent other GCM receivers from process this Intent.
+            setAbort();
+            return;
+        }
 
-      // Prevent other GCM receivers from firing if;
-      //   This is a OneSignal payload
-      //   AND the setting is enabled to allow filtering in this case.
-      if (processedResult.isOneSignalPayload &&
-          OneSignal.getFilterOtherGCMReceivers(context)) {
-         setAbort();
-         return;
-      }
+        // Prevent other GCM receivers from firing if;
+        //   This is a OneSignal payload
+        //   AND the setting is enabled to allow filtering in this case.
+        if (processedResult.isOneSignalPayload &&
+                OneSignal.getFilterOtherGCMReceivers(context)) {
+            setAbort();
+            return;
+        }
 
-      setSuccessfulResultCode();
-   }
+        setSuccessfulResultCode();
+    }
 
-   private void setSuccessfulResultCode() {
-      if (isOrderedBroadcast())
-         setResultCode(Activity.RESULT_OK);
-   }
+    private void setSuccessfulResultCode() {
+        if (isOrderedBroadcast())
+            setResultCode(Activity.RESULT_OK);
+    }
 
-   private void setAbort() {
-      if (isOrderedBroadcast()) {
-         // Prevents other BroadcastReceivers from firing
-         abortBroadcast();
+    private void setAbort() {
+        if (isOrderedBroadcast()) {
+            // Prevents other BroadcastReceivers from firing
+            abortBroadcast();
 
-         // RESULT_OK prevents the following confusing logcat entry;
-         // W/GCM: broadcast intent callback: result=CANCELLED forIntent {
-         //    act=com.google.android.c2dm.intent.RECEIVE
-         //    flg=0x10000000
-         //    pkg=com.onesignal.example (has extras)
-         // }
-         setResultCode(Activity.RESULT_OK);
-      }
-   }
+            // RESULT_OK prevents the following confusing logcat entry;
+            // W/GCM: broadcast intent callback: result=CANCELLED forIntent {
+            //    act=com.google.android.c2dm.intent.RECEIVE
+            //    flg=0x10000000
+            //    pkg=com.onesignal.example (has extras)
+            // }
+            setResultCode(Activity.RESULT_OK);
+        }
+    }
 
-   private static @Nullable ProcessedBundleResult processOrderBroadcast(Context context, Intent intent, Bundle bundle) {
-      if (!isGcmMessage(intent))
-         return null;
+    private static @Nullable ProcessedBundleResult processOrderBroadcast(Context context, Intent intent, Bundle bundle) {
+        if (!isGcmMessage(intent))
+            return null;
 
-      ProcessedBundleResult processedResult = NotificationBundleProcessor.processBundleFromReceiver(context, bundle);
+        ProcessedBundleResult processedResult = NotificationBundleProcessor.processBundleFromReceiver(context, bundle);
 
-      // Return if the notification will NOT be handled by normal GcmIntentService display flow.
-      if (processedResult.processed())
-         return processedResult;
+        // Return if the notification will NOT be handled by normal GcmIntentService display flow.
+        if (processedResult.processed())
+            return processedResult;
 
-      startGCMService(context, bundle);
+        startGCMService(context, bundle);
 
-      return processedResult;
-   }
+        return processedResult;
+    }
 
-   static void startGCMService(Context context, Bundle bundle) {
-      // If no remote resources have to be downloaded don't create a job which could add some delay.
-      if (!NotificationBundleProcessor.hasRemoteResource(bundle)) {
-         BundleCompat taskExtras = setCompatBundleForServer(bundle, BundleCompatFactory.getInstance());
-         NotificationBundleProcessor.ProcessFromGCMIntentService(context, taskExtras, null);
-         return;
-      }
+    static void startGCMService(Context context, Bundle bundle) {
+        // If no remote resources have to be downloaded don't create a job which could add some delay.
+        if (!NotificationBundleProcessor.hasRemoteResource(bundle)) {
+            BundleCompat taskExtras = setCompatBundleForServer(bundle, BundleCompatFactory.INSTANCE.createBundle());
+            NotificationBundleProcessor.ProcessFromGCMIntentService(context, taskExtras, null);
+            return;
+        }
 
-      boolean isHighPriority = Integer.parseInt(bundle.getString("pri", "0")) > 9;
-      if (!isHighPriority && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-          startGCMServiceWithJobIntentService(context, bundle);
-      else {
-         try {
-            startGCMServiceWithWakefulService(context, bundle);
-         } catch (IllegalStateException e) {
-            // If the high priority FCM message failed to add this app to the temporary whitelist
-            // https://github.com/OneSignal/OneSignal-Android-SDK/issues/498
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-               startGCMServiceWithJobIntentService(context, bundle);
-            else
-               throw e;
-         }
-      }
-   }
+        boolean isHighPriority = Integer.parseInt(bundle.getString("pri", "0")) > 9;
+        if (!isHighPriority && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            startGCMServiceWithJobIntentService(context, bundle);
+        else {
+            try {
+                startGCMServiceWithWakefulService(context, bundle);
+            } catch (IllegalStateException e) {
+                // If the high priority FCM message failed to add this app to the temporary whitelist
+                // https://github.com/OneSignal/OneSignal-Android-SDK/issues/498
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                    startGCMServiceWithJobIntentService(context, bundle);
+                else
+                    throw e;
+            }
+        }
+    }
 
-   /**
-    * This function uses a com.OneSignal.JobIntentService in order to enqueue the jobs.
-    * Some devices with Api O and upper can't schedule more than 100 distinct jobs,
-    * this will process one notification sequentially like an IntentService.
-    */
-   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-   private static void startGCMServiceWithJobIntentService(Context context, Bundle bundle) {
-      BundleCompat taskExtras = setCompatBundleForServer(bundle, BundleCompatFactory.getInstance());
+    /**
+     * This function uses a com.OneSignal.JobIntentService in order to enqueue the jobs.
+     * Some devices with Api O and upper can't schedule more than 100 distinct jobs,
+     * this will process one notification sequentially like an IntentService.
+     */
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    private static void startGCMServiceWithJobIntentService(Context context, Bundle bundle) {
+        BundleCompat taskExtras = setCompatBundleForServer(bundle, BundleCompatFactory.INSTANCE.createBundle());
+        Intent intent = new Intent(context, GcmIntentJobService.class);
+        intent.putExtra(GcmIntentJobService.BUNDLE_EXTRA, (Parcelable) taskExtras.getBundle());
 
-      Intent intent = new Intent(context, GcmIntentJobService.class);
-      intent.putExtra(GcmIntentJobService.BUNDLE_EXTRA, (Parcelable) taskExtras.getBundle());
+        GcmIntentJobService.enqueueWork(context, intent);
+    }
 
-      GcmIntentJobService.enqueueWork(context, intent);
-   }
+    private static void startGCMServiceWithWakefulService(Context context, Bundle bundle) {
+        ComponentName componentName =
+                new ComponentName(context.getPackageName(), GcmIntentService.class.getName());
 
-   private static void startGCMServiceWithWakefulService(Context context, Bundle bundle) {
-      ComponentName componentName =
-         new ComponentName(context.getPackageName(), GcmIntentService.class.getName());
+        BundleCompat taskExtras = setCompatBundleForServer(bundle, new BundleCompatBundle());
+        Intent intentForService =
+                new Intent()
+                        .replaceExtras((Bundle) taskExtras.getBundle())
+                        .setComponent(componentName);
+        startWakefulService(context, intentForService);
+    }
 
-      BundleCompat taskExtras = setCompatBundleForServer(bundle, new BundleCompatBundle());
-      Intent intentForService =
-         new Intent()
-         .replaceExtras((Bundle)taskExtras.getBundle())
-         .setComponent(componentName);
-      startWakefulService(context, intentForService);
-   }
-
-   private static BundleCompat setCompatBundleForServer(Bundle bundle, BundleCompat taskExtras) {
-      taskExtras.putString("json_payload", NotificationBundleProcessor.bundleAsJSONObject(bundle).toString());
-      taskExtras.putLong("timestamp", System.currentTimeMillis() / 1000L);
-      return taskExtras;
-   }
+    private static BundleCompat setCompatBundleForServer(Bundle bundle, BundleCompat taskExtras) {
+        taskExtras.putString("json_payload", NotificationBundleProcessor.bundleAsJSONObject(bundle).toString());
+        taskExtras.putLong("timestamp", System.currentTimeMillis() / 1000L);
+        return taskExtras;
+    }
 }

@@ -30,6 +30,8 @@ package com.onesignal;
 import android.content.Intent;
 import android.os.Bundle;
 
+import com.onesignal.bundlecompat.BundleCompatBundle;
+
 public class RestoreJobService extends JobIntentService {
 
    static final int RESTORE_SERVICE_JOB_ID = 2071862122;

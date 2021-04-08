@@ -34,6 +34,8 @@ import android.app.IntentService;
 import android.content.Intent;
 import android.os.Bundle;
 
+import com.onesignal.bundlecompat.BundleCompatBundle;
+
 /**
  * This {@code IntentService} does the actual handling of the GCM message.
  * {@code GcmBroadcastReceiver} (a {@code WakefulBroadcastReceiver}) holds a
