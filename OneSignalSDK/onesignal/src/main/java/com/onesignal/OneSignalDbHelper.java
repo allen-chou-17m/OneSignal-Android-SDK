@@ -238,6 +238,8 @@ class OneSignalDbHelper extends SQLiteOpenHelper implements OneSignalDb {
             logger.error("Error inserting or throw on table: " + table + " with nullColumnHack: " + nullColumnHack + " and values: " + values, e);
          } catch (IllegalStateException e) {
             logger.error("Error under inserting or throw transaction under table: " + table + " with nullColumnHack: " + nullColumnHack + " and values: " + values, e);
+         } catch (Throwable ex) {
+            logger.error("Error inserting or throw on table: " + table + " with nullColumnHack: " + nullColumnHack + " and values: " + values, ex);
          } finally {
             if (writableDb != null) {
                try {

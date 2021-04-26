@@ -14,21 +14,24 @@ class NotificationSummaryManager {
    
    // A notification was just dismissed, check if it was a child to a summary notification and update it.
    static void updatePossibleDependentSummaryOnDismiss(Context context, OneSignalDb db, int androidNotificationId) {
-      Cursor cursor = db.query(
-          NotificationTable.TABLE_NAME,
-          new String[] { NotificationTable.COLUMN_NAME_GROUP_ID }, // retColumn
-          NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID + " = " + androidNotificationId,
-          null, null, null, null);
-      
-      if (cursor.moveToFirst()) {
-         String group = cursor.getString(cursor.getColumnIndex(NotificationTable.COLUMN_NAME_GROUP_ID));
-         cursor.close();
-         
-         if (group != null)
-            updateSummaryNotificationAfterChildRemoved(context, db, group, true);
+      Cursor cursor = null;
+      try {
+         cursor = db.query(
+                 NotificationTable.TABLE_NAME,
+                 new String[]{NotificationTable.COLUMN_NAME_GROUP_ID}, // retColumn
+                 NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID + " = " + androidNotificationId,
+                 null, null, null, null);
+
+         if (cursor.moveToFirst()) {
+            String group = cursor.getString(cursor.getColumnIndex(NotificationTable.COLUMN_NAME_GROUP_ID));
+            cursor.close();
+
+            if (group != null)
+               updateSummaryNotificationAfterChildRemoved(context, db, group, true);
+         }
+      } finally {
+         if (null != cursor && !cursor.isClosed()) cursor.close();
       }
-      else
-         cursor.close();
    }
    
    // Called from an opened / dismissed / cancel event of a single notification to update it's parent the summary notification.

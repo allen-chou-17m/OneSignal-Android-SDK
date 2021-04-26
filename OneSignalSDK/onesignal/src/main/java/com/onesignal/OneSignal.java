@@ -2678,33 +2678,36 @@ public class OneSignal {
             OneSignalDbHelper dbHelper = OneSignalDbHelper.getInstance(appContext);
             String[] retColumn = {OneSignalDbContract.NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID};
 
-            Cursor cursor = dbHelper.query(
-                    OneSignalDbContract.NotificationTable.TABLE_NAME,
-                    retColumn,
-                    OneSignalDbContract.NotificationTable.COLUMN_NAME_DISMISSED + " = 0 AND " +
-                            OneSignalDbContract.NotificationTable.COLUMN_NAME_OPENED + " = 0",
-                    null,
-                    null,                                                    // group by
-                    null,                                                    // filter by row groups
-                    null                                                     // sort order
-            );
+            Cursor cursor = null;
+            try {
+               cursor = dbHelper.query(
+                       OneSignalDbContract.NotificationTable.TABLE_NAME,
+                       retColumn,
+                       OneSignalDbContract.NotificationTable.COLUMN_NAME_DISMISSED + " = 0 AND " +
+                               OneSignalDbContract.NotificationTable.COLUMN_NAME_OPENED + " = 0",
+                       null,
+                       null,                                                    // group by
+                       null,                                                    // filter by row groups
+                       null                                                     // sort order
+               );
 
-            if (cursor.moveToFirst()) {
-               do {
-                  int existingId = cursor.getInt(cursor.getColumnIndex(OneSignalDbContract.NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID));
-                  notificationManager.cancel(existingId);
-               } while (cursor.moveToNext());
+               if (cursor.moveToFirst()) {
+                  do {
+                     int existingId = cursor.getInt(cursor.getColumnIndex(OneSignalDbContract.NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID));
+                     notificationManager.cancel(existingId);
+                  } while (cursor.moveToNext());
+               }
+
+               // Mark all notifications as dismissed unless they were already opened.
+               String whereStr = NotificationTable.COLUMN_NAME_OPENED + " = 0";
+               ContentValues values = new ContentValues();
+               values.put(NotificationTable.COLUMN_NAME_DISMISSED, 1);
+               dbHelper.update(NotificationTable.TABLE_NAME, values, whereStr, null);
+
+               BadgeCountUpdater.updateCount(0, appContext);
+            } finally {
+               if (null != cursor && !cursor.isClosed()) cursor.close();
             }
-
-            // Mark all notifications as dismissed unless they were already opened.
-            String whereStr = NotificationTable.COLUMN_NAME_OPENED + " = 0";
-            ContentValues values = new ContentValues();
-            values.put(NotificationTable.COLUMN_NAME_DISMISSED, 1);
-            dbHelper.update(NotificationTable.TABLE_NAME, values, whereStr, null);
-
-            BadgeCountUpdater.updateCount(0, appContext);
-
-            cursor.close();
          }
       };
 
@@ -2782,19 +2785,23 @@ public class OneSignal {
                     NotificationTable.COLUMN_NAME_DISMISSED + " = 0 AND " +
                     NotificationTable.COLUMN_NAME_OPENED + " = 0";
 
-            Cursor cursor = dbHelper.query(
-                    NotificationTable.TABLE_NAME,
-                    retColumn,
-                    whereStr,
-                    whereArgs,
-                    null, null, null);
+            Cursor cursor = null;
+            try {
+               cursor = dbHelper.query(
+                       NotificationTable.TABLE_NAME,
+                       retColumn,
+                       whereStr,
+                       whereArgs,
+                       null, null, null);
 
-            while (cursor.moveToNext()) {
-               int notificationId = cursor.getInt(cursor.getColumnIndex(NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID));
-               if (notificationId != -1)
-                  notificationManager.cancel(notificationId);
+               while (cursor.moveToNext()) {
+                  int notificationId = cursor.getInt(cursor.getColumnIndex(NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID));
+                  if (notificationId != -1)
+                     notificationManager.cancel(notificationId);
+               }
+            } finally {
+               if (null != cursor && !cursor.isClosed()) cursor.close();
             }
-            cursor.close();
 
             whereStr = NotificationTable.COLUMN_NAME_GROUP_ID + " = ? AND " +
                     NotificationTable.COLUMN_NAME_OPENED + " = 0 AND " +
@@ -3057,23 +3064,27 @@ public class OneSignal {
       String[] retColumn = {NotificationTable.COLUMN_NAME_NOTIFICATION_ID};
       String[] whereArgs = {id};
 
-      Cursor cursor = dbHelper.query(
-              NotificationTable.TABLE_NAME,
-              retColumn,
-              NotificationTable.COLUMN_NAME_NOTIFICATION_ID + " = ?",   // Where String
-              whereArgs,
-              null, null, null);
+      boolean exists = false;
+      Cursor cursor = null;
+      try {
+         cursor = dbHelper.query(
+                 NotificationTable.TABLE_NAME,
+                 retColumn,
+                 NotificationTable.COLUMN_NAME_NOTIFICATION_ID + " = ?",   // Where String
+                 whereArgs,
+                 null, null, null);
 
-      boolean exists = cursor.moveToFirst();
-
-      cursor.close();
-
-      if (exists) {
-         Log(LOG_LEVEL.DEBUG, "Duplicate GCM message received, skip processing of " + id);
-         return true;
+         exists = cursor.moveToFirst();
+         if (exists) {
+            Log(LOG_LEVEL.DEBUG, "Duplicate GCM message received, skip processing of " + id);
+         }
+      } catch (Exception ex) {
+         OneSignal.Log(LOG_LEVEL.ERROR, "isDuplicateNotification check fail due to ex:" + ex.toString());
+      } finally {
+         if (null != cursor && !cursor.isClosed()) cursor.close();
       }
 
-      return false;
+      return exists;
    }
 
    static boolean notValidOrDuplicated(Context context, JSONObject jsonPayload) {

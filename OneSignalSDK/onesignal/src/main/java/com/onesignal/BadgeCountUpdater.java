@@ -98,21 +98,24 @@ class BadgeCountUpdater {
    }
 
    private static void updateFallback(OneSignalDb db, Context context) {
-      Cursor cursor = db.query(
-         NotificationTable.TABLE_NAME,
-         null,
-         OneSignalDbHelper.recentUninteractedWithNotificationsWhere().toString(),
-         null,                                                    // Where args
-         null,                                                    // group by
-         null,                                                    // filter by row groups
-         null,                                                     // sort order, new to old
-         MAX_NUMBER_OF_NOTIFICATIONS_STR
-      );
+      Cursor cursor = null;
+      try {
+         cursor = db.query(
+                 NotificationTable.TABLE_NAME,
+                 null,
+                 OneSignalDbHelper.recentUninteractedWithNotificationsWhere().toString(),
+                 null,                                                    // Where args
+                 null,                                                    // group by
+                 null,                                                    // filter by row groups
+                 null,                                                     // sort order, new to old
+                 MAX_NUMBER_OF_NOTIFICATIONS_STR
+         );
 
-      int notificationCount = cursor.getCount();
-      cursor.close();
-
-      updateCount(notificationCount, context);
+         int notificationCount = cursor.getCount();
+         updateCount(notificationCount, context);
+      } finally {
+         if (null != cursor && !cursor.isClosed()) cursor.close();
+      }
    }
 
    static void updateCount(int count, Context context) {
