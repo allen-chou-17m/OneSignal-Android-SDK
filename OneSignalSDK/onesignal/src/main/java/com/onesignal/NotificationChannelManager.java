@@ -234,12 +234,17 @@ class NotificationChannelManager {
       
       // Delete old channels - Payload will include all changes for the app. Any extra OS_ ones must
       //                         have been deleted from the dashboard and should be removed.
-      List<NotificationChannel> existingChannels = notificationManager.getNotificationChannels();
-      for(NotificationChannel existingChannel : existingChannels) {
-         String id = existingChannel.getId();
-         if (id.startsWith("OS_") && !syncedChannelSet.contains(id))
-            notificationManager.deleteNotificationChannel(id);
+      try {
+         List<NotificationChannel> existingChannels = notificationManager.getNotificationChannels();
+         for(NotificationChannel existingChannel : existingChannels) {
+            String id = existingChannel.getId();
+            if (id.startsWith("OS_") && !syncedChannelSet.contains(id))
+               notificationManager.deleteNotificationChannel(id);
+         }
+      } catch (Exception e) {
+         OneSignal.Log(OneSignal.LOG_LEVEL.ERROR, "Could not delete existingChannels", e);
       }
+
    }
    
    private static int priorityToImportance(int priority) {
