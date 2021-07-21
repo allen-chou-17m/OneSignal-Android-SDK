@@ -8,9 +8,9 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion rootProject.buildVersions.compileSdkVersion
+    compileSdkVersion 29//rootProject.buildVersions.compileSdkVersion
     defaultConfig {
-        minSdkVersion buildVersions.minSdkVersion
+        minSdkVersion 16//buildVersions.minSdkVersion
         consumerProguardFiles 'consumer-proguard-rules.pro'
     }
 
@@ -37,7 +37,7 @@ android {
 dependencies {
     compileOnly fileTree(dir: 'libs', include: ['*.jar'])
 
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.4.32"//$kotlinVersion"
 
     // play-services-location:16.0.0 is the last version before going to AndroidX
     // play-services-location:17.0.0 is the first version using AndroidX
@@ -48,7 +48,7 @@ dependencies {
     // Required for GoogleApiAvailability
     implementation 'com.google.android.gms:play-services-base:[17.0.0, 17.6.99]'
 
-    implementation("androidx.concurrent:concurrent-futures:$androidConcurrentFutures")
+    implementation("androidx.concurrent:concurrent-futures:1.1.0")//$androidConcurrentFutures")
 
     // firebase-messaging:18.0.0 is the last version before going to AndroidX
     // firebase-messaging:19.0.0 is the first version using AndroidX
@@ -56,8 +56,8 @@ dependencies {
 
     // Huawei PushKit
     // KEEP as "compileOnly", so OneSignal isn't a direct dependency in the POM file.
-    compileOnly "com.huawei.hms:push:$huaweiHMSPushVersion"
-    compileOnly "com.huawei.hms:location:$huaweiHMSLocationVersion"
+    compileOnly "com.huawei.hms:push:4.0.2.300"//$huaweiHMSPushVersion"
+    compileOnly "com.huawei.hms:location:4.0.0.300"//$huaweiHMSLocationVersion"
 
     api 'androidx.cardview:cardview:[1.0.0, 1.0.99]'
     api 'androidx.legacy:legacy-support-v4:[1.0.0, 1.0.99]'
