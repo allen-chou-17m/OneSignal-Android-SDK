@@ -14,9 +14,9 @@ buildscript {
         maven { url 'http://developer.huawei.com/repo/' }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.0'
+        classpath 'com.android.tools.build:gradle:4.2.2'
 
-        classpath 'com.google.gms:google-services:4.3.2'
+        classpath 'com.google.gms:google-services:4.3.10'
         classpath 'com.huawei.agconnect:agcp:1.2.1.301'
 
         // com.huawei.agconnect Gradle Plugin
