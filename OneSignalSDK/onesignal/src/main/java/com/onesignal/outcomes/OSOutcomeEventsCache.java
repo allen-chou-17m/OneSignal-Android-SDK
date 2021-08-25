@@ -137,83 +137,85 @@ class OSOutcomeEventsCache {
     @WorkerThread
     synchronized List<OSOutcomeEventParams> getAllEventsToSend() {
         List<OSOutcomeEventParams> events = new ArrayList<>();
-        Cursor
-                cursor = dbHelper.query(OutcomeEventsTable.TABLE_NAME,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
+        Cursor cursor = null;
+        try {
+            cursor = dbHelper.query(OutcomeEventsTable.TABLE_NAME,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+            );
 
-        if (cursor.moveToFirst()) {
-            do {
-                // Retrieve influence types
-                String notificationInfluenceTypeString = cursor.getString(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_NOTIFICATION_INFLUENCE_TYPE));
-                OSInfluenceType notificationInfluenceType = OSInfluenceType.fromString(notificationInfluenceTypeString);
-                String iamInfluenceTypeString = cursor.getString(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_IAM_INFLUENCE_TYPE));
-                OSInfluenceType iamInfluenceType = OSInfluenceType.fromString(iamInfluenceTypeString);
+            if (cursor.moveToFirst()) {
+                do {
+                    // Retrieve influence types
+                    String notificationInfluenceTypeString = cursor.getString(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_NOTIFICATION_INFLUENCE_TYPE));
+                    OSInfluenceType notificationInfluenceType = OSInfluenceType.fromString(notificationInfluenceTypeString);
+                    String iamInfluenceTypeString = cursor.getString(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_IAM_INFLUENCE_TYPE));
+                    OSInfluenceType iamInfluenceType = OSInfluenceType.fromString(iamInfluenceTypeString);
 
-                // Retrieve influence ids
-                String notificationIds = cursor.getString(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_NOTIFICATION_IDS));
-                notificationIds = notificationIds != null ? notificationIds : "[]";
-                String iamIds = cursor.getString(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_IAM_IDS));
-                iamIds = iamIds != null ? iamIds : "[]";
+                    // Retrieve influence ids
+                    String notificationIds = cursor.getString(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_NOTIFICATION_IDS));
+                    notificationIds = notificationIds != null ? notificationIds : "[]";
+                    String iamIds = cursor.getString(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_IAM_IDS));
+                    iamIds = iamIds != null ? iamIds : "[]";
 
-                // Retrieve Outcome data
-                String name = cursor.getString(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_NAME));
-                float weight = cursor.getFloat(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_WEIGHT));
-                long timestamp = cursor.getLong(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_TIMESTAMP));
+                    // Retrieve Outcome data
+                    String name = cursor.getString(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_NAME));
+                    float weight = cursor.getFloat(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_WEIGHT));
+                    long timestamp = cursor.getLong(cursor.getColumnIndex(OutcomeEventsTable.COLUMN_NAME_TIMESTAMP));
 
-                try {
-                    OSOutcomeSourceBody directSourceBody = new OSOutcomeSourceBody();
-                    OSOutcomeSourceBody indirectSourceBody = new OSOutcomeSourceBody();
-                    OSOutcomeSource source = null;
+                    try {
+                        OSOutcomeSourceBody directSourceBody = new OSOutcomeSourceBody();
+                        OSOutcomeSourceBody indirectSourceBody = new OSOutcomeSourceBody();
+                        OSOutcomeSource source = null;
 
-                    switch (notificationInfluenceType) {
-                        case DIRECT:
-                            directSourceBody.setNotificationIds(new JSONArray(notificationIds));
-                            source = new OSOutcomeSource(directSourceBody, null);
-                            break;
-                        case INDIRECT:
-                            indirectSourceBody.setNotificationIds(new JSONArray(notificationIds));
-                            source = new OSOutcomeSource(null, indirectSourceBody);
-                            break;
-                        case UNATTRIBUTED:
-                            // Keep source as null, no source mean unattributed
-                            break;
-                        case DISABLED:
-                            // We should not save disable
-                            break;
+                        switch (notificationInfluenceType) {
+                            case DIRECT:
+                                directSourceBody.setNotificationIds(new JSONArray(notificationIds));
+                                source = new OSOutcomeSource(directSourceBody, null);
+                                break;
+                            case INDIRECT:
+                                indirectSourceBody.setNotificationIds(new JSONArray(notificationIds));
+                                source = new OSOutcomeSource(null, indirectSourceBody);
+                                break;
+                            case UNATTRIBUTED:
+                                // Keep source as null, no source mean unattributed
+                                break;
+                            case DISABLED:
+                                // We should not save disable
+                                break;
+                        }
+
+                        switch (iamInfluenceType) {
+                            case DIRECT:
+                                directSourceBody.setInAppMessagesIds(new JSONArray(iamIds));
+                                source = source == null ? new OSOutcomeSource(directSourceBody, null) : source.setDirectBody(directSourceBody);
+                                break;
+                            case INDIRECT:
+                                indirectSourceBody.setInAppMessagesIds(new JSONArray(iamIds));
+                                source = source == null ? new OSOutcomeSource(null, indirectSourceBody) : source.setIndirectBody(indirectSourceBody);
+                                break;
+                            case UNATTRIBUTED:
+                                // Keep source as null, no source mean unattributed
+                                break;
+                            case DISABLED:
+                                // We should not save disable
+                                break;
+                        }
+
+                        OSOutcomeEventParams eventParams = new OSOutcomeEventParams(name, source, weight, timestamp);
+                        events.add(eventParams);
+                    } catch (JSONException e) {
+                        logger.error("Generating JSONArray from notifications ids outcome:JSON Failed.", e);
                     }
-
-                    switch (iamInfluenceType) {
-                        case DIRECT:
-                            directSourceBody.setInAppMessagesIds(new JSONArray(iamIds));
-                            source = source == null ? new OSOutcomeSource(directSourceBody, null) : source.setDirectBody(directSourceBody);
-                            break;
-                        case INDIRECT:
-                            indirectSourceBody.setInAppMessagesIds(new JSONArray(iamIds));
-                            source = source == null ? new OSOutcomeSource(null, indirectSourceBody) : source.setIndirectBody(indirectSourceBody);
-                            break;
-                        case UNATTRIBUTED:
-                            // Keep source as null, no source mean unattributed
-                            break;
-                        case DISABLED:
-                            // We should not save disable
-                            break;
-                    }
-
-                    OSOutcomeEventParams eventParams = new OSOutcomeEventParams(name, source, weight, timestamp);
-                    events.add(eventParams);
-                } catch (JSONException e) {
-                    logger.error("Generating JSONArray from notifications ids outcome:JSON Failed.", e);
-                }
-            } while (cursor.moveToNext());
+                } while (cursor.moveToNext());
+            }
+        } finally {
+            if (null != cursor && !cursor.isClosed()) cursor.close();
         }
-
-        cursor.close();
 
         return events;
     }
@@ -276,7 +278,6 @@ class OSOutcomeEventsCache {
     @WorkerThread
     synchronized List<OSInfluence> getNotCachedUniqueInfluencesForOutcome(String name, List<OSInfluence> influences) {
         List<OSInfluence> uniqueInfluences = new ArrayList<>();
-        Cursor cursor = null;
 
         try {
             for (OSInfluence influence : influences) {
@@ -298,20 +299,25 @@ class OSOutcomeEventsCache {
 
                     String[] args = new String[]{channelInfluenceId, String.valueOf(channel), name};
 
-                    cursor = dbHelper.query(
-                            CachedUniqueOutcomeTable.TABLE_NAME,
-                            columns,
-                            where,
-                            args,
-                            null,
-                            null,
-                            null,
-                            "1"
-                    );
+                    Cursor cursor = null;
+                    try {
+                        cursor = dbHelper.query(
+                                CachedUniqueOutcomeTable.TABLE_NAME,
+                                columns,
+                                where,
+                                args,
+                                null,
+                                null,
+                                null,
+                                "1"
+                        );
 
-                    // Item is not cached, we can use the influence id, add it to the JSONArray
-                    if (cursor.getCount() == 0)
-                        availableInfluenceIds.put(channelInfluenceId);
+                        // Item is not cached, we can use the influence id, add it to the JSONArray
+                        if (cursor.getCount() == 0)
+                            availableInfluenceIds.put(channelInfluenceId);
+                    } finally {
+                        if (null != cursor && !cursor.isClosed()) cursor.close();
+                    }
                 }
 
                 if (availableInfluenceIds.length() > 0) {
@@ -322,9 +328,6 @@ class OSOutcomeEventsCache {
             }
         } catch (JSONException e) {
             e.printStackTrace();
-        } finally {
-            if (cursor != null && !cursor.isClosed())
-                cursor.close();
         }
 
         return uniqueInfluences;
