@@ -1,6 +1,6 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-
+apply plugin: 'maven-publish'
 
 android {
     compileSdkVersion 28
@@ -84,4 +84,4 @@ dependencies {
 
 }
 
-apply from: 'maven-push.gradle'
+//apply from: 'maven-push.gradle'
