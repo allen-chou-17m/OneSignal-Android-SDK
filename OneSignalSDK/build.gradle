@@ -9,7 +9,7 @@ buildscript {
 //      maven { url uri('../../repo') }
         // OneSignal-Gradle-Plugin - Public version
 //      maven { url 'https://plugins.gradle.org/m2/' }
-
+        gradlePluginPortal()
         // huawei maven
         maven { url 'http://developer.huawei.com/repo/' }
     }
@@ -18,6 +18,10 @@ buildscript {
 
         classpath 'com.google.gms:google-services:4.3.2'
         classpath 'com.huawei.agconnect:agcp:1.2.1.301'
+
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.20"
+
+        classpath 'gradle.plugin.com.onesignal:onesignal-gradle-plugin:0.12.9'
 
         // com.huawei.agconnect Gradle Plugin
 
@@ -36,6 +40,7 @@ allprojects {
         flatDir {
             dirs 'libs'
         }
+        mavenCentral()
         maven { url 'https://maven.google.com' }
 
         // huawei maven
