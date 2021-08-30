@@ -1,0 +1,40 @@
+
+apply plugin: "com.jfrog.artifactory"
+apply plugin: "maven-publish"
+
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream()) // load local.properties
+def JFROG_USER_NAME = properties.getProperty('jfrog.username') // read property from local.properties
+def JFROG_TOKEN = properties.getProperty('jfrog.token')
+
+def REPO_KEY = "live17"
+def MAVEN_LOCAL_PATH = "https://live17.jfrog.io/artifactory/"
+def GROUP_ID = "com.live17.sdk"
+def ARTIFACT_ID = "onesignal"
+def VERSION_NAME = "3.15.8"
+
+publishing {
+    publications {
+        aar(MavenPublication) {
+            groupId = GROUP_ID
+            artifactId = ARTIFACT_ID
+            version = VERSION_NAME
+            artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
+        }
+    }
+}
+
+artifactoryPublish {
+    publications(publishing.publications.aar)
+}
+
+artifactory {
+    contextUrl = MAVEN_LOCAL_PATH
+    publish {
+        repository {
+            repoKey = REPO_KEY
+            username = JFROG_USER_NAME
+            password = JFROG_TOKEN
+        }
+    }
+}

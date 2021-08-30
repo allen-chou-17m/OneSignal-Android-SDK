@@ -5,13 +5,14 @@ buildscript {
         google()
         jcenter()
         maven { url 'https://maven.google.com' }
+        mavenCentral()
         // OneSignal-Gradle-Plugin - Local testing
 //      maven { url uri('../../repo') }
         // OneSignal-Gradle-Plugin - Public version
 //      maven { url 'https://plugins.gradle.org/m2/' }
         gradlePluginPortal()
         // huawei maven
-        maven { url 'http://developer.huawei.com/repo/' }
+        maven { url 'https://developer.huawei.com/repo/' }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.5.0'
@@ -22,7 +23,7 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.20"
 
         classpath 'gradle.plugin.com.onesignal:onesignal-gradle-plugin:0.12.9'
-
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.24.16"
         // com.huawei.agconnect Gradle Plugin
 
         // OneSignal-Gradle-Plugin - Local testing
