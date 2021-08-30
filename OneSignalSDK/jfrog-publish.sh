@@ -1,0 +1,1 @@
+./gradlew onesignal:assembleRelease onesignal:artifactoryPublish
