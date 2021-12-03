@@ -75,7 +75,7 @@ dependencies {
     api "androidx.cardview:cardview:1.0.0"
     api "androidx.fragment:fragment-ktx:1.2.5"
     api "androidx.browser:browser:1.0.0"
-
+    implementation "com.tencent:mmkv-static:1.2.11"
     // compileOnly as this is just for fallback code if AppCompatActivity wasn't added to the project.
     compileOnly "androidx.appcompat:appcompat:1.0.0"
 
