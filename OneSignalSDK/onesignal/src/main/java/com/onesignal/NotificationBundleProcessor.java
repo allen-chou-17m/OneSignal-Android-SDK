@@ -164,7 +164,9 @@ class NotificationBundleProcessor {
                 OneSignal.handleNotificationReceived(notificationJob);
             }
         } catch (Throwable throwable) {
-            throwable.printStackTrace();
+            if (BuildConfig.DEBUG) {
+                throwable.printStackTrace();
+            }
         }
 
         return androidNotificationId;
