@@ -26,6 +26,11 @@ android {
             minifyEnabled false
         }
     }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8.toString()
+        freeCompilerArgs = ['-Xjvm-default=compatibility']
+    }
 }
 
 // api || implementation = compile and runtime

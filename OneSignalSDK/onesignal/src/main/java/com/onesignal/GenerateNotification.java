@@ -27,6 +27,8 @@
 
 package com.onesignal;
 
+import static com.onesignal.OSUtils.getResourceString;
+
 import android.R.drawable;
 import android.app.Notification;
 import android.app.PendingIntent;
@@ -37,6 +39,8 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.service.notification.StatusBarNotification;
@@ -44,6 +48,7 @@ import android.text.SpannableString;
 import android.text.style.StyleSpan;
 import android.widget.RemoteViews;
 
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.WorkerThread;
 import androidx.core.app.NotificationCompat;
@@ -57,15 +62,15 @@ import org.json.JSONObject;
 
 import java.lang.reflect.Field;
 import java.math.BigInteger;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
-
-import static com.onesignal.OSUtils.getResourceString;
 
 class GenerateNotification {
 
@@ -911,11 +916,32 @@ class GenerateNotification {
       return null;
    }
 
+   @Nullable
    private static Bitmap getBitmapFromURL(String location) {
+      Context context = OneSignal.appContext;
+      if (null != context) {
+         ConnectivityManager conMgr = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+         NetworkInfo networkInfo = null;
+         if (null != conMgr) {
+            networkInfo = conMgr.getActiveNetworkInfo();
+         }
+         if (null == networkInfo || !networkInfo.isConnectedOrConnecting()) {
+            OneSignal.Log(OneSignal.LOG_LEVEL.ERROR, "no network, just return null Bitmap");
+            return null;
+         }
+      }
+
+      URLConnection conection = null;
       try {
-         return BitmapFactory.decodeStream(new URL(location).openConnection().getInputStream());
+         conection = new URL(location).openConnection();
+         return BitmapFactory.decodeStream(conection.getInputStream());
       } catch (Throwable t) {
          OneSignal.Log(OneSignal.LOG_LEVEL.WARN, "Could not download image!", t);
+      } finally {
+         //https extends http
+         if (conection instanceof HttpURLConnection) {
+            ((HttpURLConnection) conection).disconnect();
+         }
       }
 
       return null;
