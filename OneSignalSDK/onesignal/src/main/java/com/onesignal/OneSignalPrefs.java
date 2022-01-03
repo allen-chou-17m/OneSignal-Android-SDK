@@ -32,8 +32,11 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.HandlerThread;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import com.tencent.mmkv.MMKV;
 
 import java.util.HashMap;
 import java.util.Set;
@@ -117,6 +120,11 @@ class OneSignalPrefs {
     // Player Purchase Keys
     static final String PREFS_PURCHASE_TOKENS = "purchaseTokens";
     static final String PREFS_EXISTING_PURCHASES = "ExistingPurchases";
+
+    // Migrate from sharedPreferences to MMKV's version
+    static final String PREFS_MIGRATE_VERSION = "PREFS_MIGRATE_VERSION";
+    private static final int PREFS_MIGRATE_DEFAULT_VERSION = 0;
+    private static final int PREFS_MIGRATE_VERSION_INT = 1;
 
     // Buffered writes to apply on WritePrefHandlerThread with a short delay
     static HashMap<String, HashMap<String, Object>> prefsToApply;
@@ -326,7 +334,15 @@ class OneSignalPrefs {
             return null;
         }
 
-        return OneSignal.appContext.getSharedPreferences(prefsName, Context.MODE_PRIVATE);
+        MMKV mmkv = MMKV.mmkvWithID(prefsName, MMKV.MULTI_PROCESS_MODE);
+        int version = mmkv.getInt(PREFS_MIGRATE_VERSION, PREFS_MIGRATE_DEFAULT_VERSION);
+        if (version < PREFS_MIGRATE_VERSION_INT) {
+            SharedPreferences oldPreferences = OneSignal.appContext.getSharedPreferences(prefsName, Context.MODE_PRIVATE);
+            mmkv.importFromSharedPreferences(oldPreferences);
+            oldPreferences.edit().clear().apply();
+            mmkv.putInt(PREFS_MIGRATE_VERSION, PREFS_MIGRATE_VERSION_INT);
+        }
+        return mmkv;
     }
 
 }
