@@ -27,6 +27,11 @@
 
 package com.onesignal;
 
+import static com.onesignal.outcomes.data.OutcomesDbContract.SQL_CREATE_OUTCOME_ENTRIES_V1;
+import static com.onesignal.outcomes.data.OutcomesDbContract.SQL_CREATE_OUTCOME_ENTRIES_V3;
+import static com.onesignal.outcomes.data.OutcomesDbContract.SQL_CREATE_UNIQUE_OUTCOME_ENTRIES_V1;
+import static com.onesignal.outcomes.data.OutcomesDbContract.SQL_CREATE_UNIQUE_OUTCOME_ENTRIES_V2;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -47,11 +52,6 @@ import com.onesignal.outcomes.data.OSOutcomeTableProvider;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.onesignal.outcomes.data.OutcomesDbContract.SQL_CREATE_OUTCOME_ENTRIES_V1;
-import static com.onesignal.outcomes.data.OutcomesDbContract.SQL_CREATE_OUTCOME_ENTRIES_V3;
-import static com.onesignal.outcomes.data.OutcomesDbContract.SQL_CREATE_UNIQUE_OUTCOME_ENTRIES_V1;
-import static com.onesignal.outcomes.data.OutcomesDbContract.SQL_CREATE_UNIQUE_OUTCOME_ENTRIES_V2;
 
 class OneSignalDbHelper extends SQLiteOpenHelper implements OneSignalDb {
 
@@ -238,6 +238,8 @@ class OneSignalDbHelper extends SQLiteOpenHelper implements OneSignalDb {
             logger.error("Error inserting or throw on table: " + table + " with nullColumnHack: " + nullColumnHack + " and values: " + values, e);
          } catch (IllegalStateException e) {
             logger.error("Error under inserting or throw transaction under table: " + table + " with nullColumnHack: " + nullColumnHack + " and values: " + values, e);
+         } catch (Throwable ex) {
+            logger.error("Error inserting or throw on table: " + table + " with nullColumnHack: " + nullColumnHack + " and values: " + values, ex);
          } finally {
             if (writableDb != null) {
                try {

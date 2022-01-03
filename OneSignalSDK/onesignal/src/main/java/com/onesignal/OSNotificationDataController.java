@@ -4,7 +4,6 @@ import android.app.NotificationManager;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.os.Process;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -78,33 +77,34 @@ class OSNotificationDataController extends OSBackgroundManager {
 
                 String[] retColumn = {OneSignalDbContract.NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID};
 
-                Cursor cursor = dbHelper.query(
-                        OneSignalDbContract.NotificationTable.TABLE_NAME,
-                        retColumn,
-                        OneSignalDbContract.NotificationTable.COLUMN_NAME_DISMISSED + " = 0 AND " +
-                                OneSignalDbContract.NotificationTable.COLUMN_NAME_OPENED + " = 0",
-                        null,
-                        null,                                                    // group by
-                        null,                                                    // filter by row groups
-                        null                                                     // sort order
-                );
+                Cursor cursor = null;
+                try {
+                    cursor = dbHelper.query(
+                            OneSignalDbContract.NotificationTable.TABLE_NAME,
+                            retColumn,
+                            OneSignalDbContract.NotificationTable.COLUMN_NAME_DISMISSED + " = 0 AND " +
+                                    OneSignalDbContract.NotificationTable.COLUMN_NAME_OPENED + " = 0",
+                            null,
+                            null,                                                    // group by
+                            null,                                                    // filter by row groups
+                            null                                                     // sort order
+                    );
 
-                if (cursor.moveToFirst()) {
-                    do {
-                        int existingId = cursor.getInt(cursor.getColumnIndex(OneSignalDbContract.NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID));
-                        notificationManager.cancel(existingId);
-                    } while (cursor.moveToNext());
+                    if (cursor.moveToFirst()) {
+                        do {
+                            int existingId = cursor.getInt(cursor.getColumnIndex(OneSignalDbContract.NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID));
+                            notificationManager.cancel(existingId);
+                        } while (cursor.moveToNext());
+                    }
+                    // Mark all notifications as dismissed unless they were already opened.
+                    String whereStr = NotificationTable.COLUMN_NAME_OPENED + " = 0";
+                    ContentValues values = new ContentValues();
+                    values.put(NotificationTable.COLUMN_NAME_DISMISSED, 1);
+                    dbHelper.update(NotificationTable.TABLE_NAME, values, whereStr, null);
+                    BadgeCountUpdater.updateCount(0, appContext);
+                } finally {
+                    if (null != cursor && !cursor.isClosed()) cursor.close();
                 }
-
-                // Mark all notifications as dismissed unless they were already opened.
-                String whereStr = NotificationTable.COLUMN_NAME_OPENED + " = 0";
-                ContentValues values = new ContentValues();
-                values.put(NotificationTable.COLUMN_NAME_DISMISSED, 1);
-                dbHelper.update(NotificationTable.TABLE_NAME, values, whereStr, null);
-
-                BadgeCountUpdater.updateCount(0, appContext);
-
-                cursor.close();
             }
         };
 
@@ -131,19 +131,23 @@ class OSNotificationDataController extends OSBackgroundManager {
                         NotificationTable.COLUMN_NAME_DISMISSED + " = 0 AND " +
                         NotificationTable.COLUMN_NAME_OPENED + " = 0";
 
-                Cursor cursor = dbHelper.query(
-                        NotificationTable.TABLE_NAME,
-                        retColumn,
-                        whereStr,
-                        whereArgs,
-                        null, null, null);
+                Cursor cursor = null;
+                try {
+                    cursor = dbHelper.query(
+                            NotificationTable.TABLE_NAME,
+                            retColumn,
+                            whereStr,
+                            whereArgs,
+                            null, null, null);
 
-                while (cursor.moveToNext()) {
-                    int notificationId = cursor.getInt(cursor.getColumnIndex(NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID));
-                    if (notificationId != -1)
-                        notificationManager.cancel(notificationId);
+                    while (cursor.moveToNext()) {
+                        int notificationId = cursor.getInt(cursor.getColumnIndex(NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID));
+                        if (notificationId != -1)
+                            notificationManager.cancel(notificationId);
+                    }
+                } finally {
+                    if (null != cursor && !cursor.isClosed()) cursor.close();
                 }
-                cursor.close();
 
                 whereStr = NotificationTable.COLUMN_NAME_GROUP_ID + " = ? AND " +
                         NotificationTable.COLUMN_NAME_OPENED + " = 0 AND " +
@@ -223,20 +227,25 @@ class OSNotificationDataController extends OSBackgroundManager {
                 String[] retColumn = {NotificationTable.COLUMN_NAME_NOTIFICATION_ID};
                 String[] whereArgs = {id};
 
-                Cursor cursor = dbHelper.query(
-                        NotificationTable.TABLE_NAME,
-                        retColumn,
-                        NotificationTable.COLUMN_NAME_NOTIFICATION_ID + " = ?",   // Where String
-                        whereArgs,
-                        null, null, null);
+                Cursor cursor = null;
+                try {
+                    cursor = dbHelper.query(
+                            NotificationTable.TABLE_NAME,
+                            retColumn,
+                            NotificationTable.COLUMN_NAME_NOTIFICATION_ID + " = ?",   // Where String
+                            whereArgs,
+                            null, null, null);
 
-                boolean exists = cursor.moveToFirst();
+                    boolean exists = cursor.moveToFirst();
 
-                cursor.close();
+                    cursor.close();
 
-                if (exists) {
-                    logger.debug("Notification notValidOrDuplicated with id duplicated, duplicate FCM message received, skip processing of " + id);
-                    result = true;
+                    if (exists) {
+                        logger.debug("Notification notValidOrDuplicated with id duplicated, duplicate FCM message received, skip processing of " + id);
+                        result = true;
+                    }
+                } finally {
+                    if (null != cursor && !cursor.isClosed()) cursor.close();
                 }
 
                 callback.onResult(result);

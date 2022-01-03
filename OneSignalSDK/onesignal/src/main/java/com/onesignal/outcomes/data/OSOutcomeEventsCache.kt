@@ -2,7 +2,6 @@ package com.onesignal.outcomes.data
 
 import android.content.ContentValues
 import android.database.Cursor
-import android.database.sqlite.SQLiteDatabase
 import androidx.annotation.WorkerThread
 import com.onesignal.OSLogger
 import com.onesignal.OSSharedPreferences
@@ -266,7 +265,6 @@ internal class OSOutcomeEventsCache(private val logger: OSLogger,
     @Synchronized
     fun getNotCachedUniqueInfluencesForOutcome(name: String, influences: List<OSInfluence>): List<OSInfluence> {
         val uniqueInfluences: MutableList<OSInfluence> = ArrayList()
-        var cursor: Cursor? = null
         try {
             for (influence in influences) {
                 val availableInfluenceIds = JSONArray()
@@ -280,7 +278,9 @@ internal class OSOutcomeEventsCache(private val logger: OSLogger,
                             CachedUniqueOutcomeTable.COLUMN_CHANNEL_TYPE + " = ? AND " +
                             CachedUniqueOutcomeTable.COLUMN_NAME_NAME + " = ?"
                     val args = arrayOf(channelInfluenceId, channel.toString(), name)
-                    cursor = dbHelper.query(
+                    var cursor: Cursor? = null
+                    try {
+                        cursor = dbHelper.query(
                             CachedUniqueOutcomeTable.TABLE_NAME,
                             columns,
                             where,
@@ -289,10 +289,15 @@ internal class OSOutcomeEventsCache(private val logger: OSLogger,
                             null,
                             null,
                             "1"
-                    )
+                        )
 
-                    // Item is not cached, we can use the influence id, add it to the JSONArray
-                    if (cursor.count == 0) availableInfluenceIds.put(channelInfluenceId)
+                        // Item is not cached, we can use the influence id, add it to the JSONArray
+                        if (cursor.count == 0) availableInfluenceIds.put(channelInfluenceId)
+                    } finally {
+                        cursor?.let {
+                            if (!it.isClosed) it.close()
+                        }
+                    }
                 }
 
                 if (availableInfluenceIds.length() > 0) {
@@ -305,10 +310,6 @@ internal class OSOutcomeEventsCache(private val logger: OSLogger,
             }
         } catch (e: JSONException) {
             e.printStackTrace()
-        } finally {
-            cursor?.let {
-                if (!it.isClosed) it.close()
-            }
         }
         return uniqueInfluences
     }

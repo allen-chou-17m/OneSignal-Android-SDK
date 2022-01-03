@@ -27,6 +27,9 @@
 
 package com.onesignal;
 
+import static com.onesignal.GenerateNotification.BUNDLE_KEY_ANDROID_NOTIFICATION_ID;
+import static com.onesignal.GenerateNotification.BUNDLE_KEY_ONESIGNAL_DATA;
+
 import android.app.Activity;
 import android.app.NotificationManager;
 import android.content.ContentValues;
@@ -43,9 +46,6 @@ import com.onesignal.OneSignalDbContract.NotificationTable;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import static com.onesignal.GenerateNotification.BUNDLE_KEY_ANDROID_NOTIFICATION_ID;
-import static com.onesignal.GenerateNotification.BUNDLE_KEY_ONESIGNAL_DATA;
 
 // Process both notifications opens and dismisses.
 class NotificationOpenedProcessor {
@@ -151,29 +151,32 @@ class NotificationOpenedProcessor {
       String[] retColumn = { NotificationTable.COLUMN_NAME_FULL_DATA };
       String[] whereArgs = { summaryGroup };
 
-      Cursor cursor = writableDb.query(
-            NotificationTable.TABLE_NAME,
-            retColumn,
-            NotificationTable.COLUMN_NAME_GROUP_ID + " = ? AND " +   // Where String
-                  NotificationTable.COLUMN_NAME_DISMISSED + " = 0 AND " +
-                  NotificationTable.COLUMN_NAME_OPENED + " = 0 AND " +
-                  NotificationTable.COLUMN_NAME_IS_SUMMARY + " = 0",
-            whereArgs,
-            null, null, null);
+      Cursor cursor = null;
+      try {
+         cursor = writableDb.query(
+                 NotificationTable.TABLE_NAME,
+                 retColumn,
+                 NotificationTable.COLUMN_NAME_GROUP_ID + " = ? AND " +   // Where String
+                         NotificationTable.COLUMN_NAME_DISMISSED + " = 0 AND " +
+                         NotificationTable.COLUMN_NAME_OPENED + " = 0 AND " +
+                         NotificationTable.COLUMN_NAME_IS_SUMMARY + " = 0",
+                 whereArgs,
+                 null, null, null);
 
-      if (cursor.getCount() > 1) {
-         cursor.moveToFirst();
-         do {
-            try {
-               String jsonStr = cursor.getString(cursor.getColumnIndex(NotificationTable.COLUMN_NAME_FULL_DATA));
-               dataArray.put(new JSONObject(jsonStr));
-            } catch (JSONException e) {
-               OneSignal.Log(OneSignal.LOG_LEVEL.ERROR, "Could not parse JSON of sub notification in group: " + summaryGroup);
-            }
-         } while (cursor.moveToNext());
+         if (cursor.getCount() > 1) {
+            cursor.moveToFirst();
+            do {
+               try {
+                  String jsonStr = cursor.getString(cursor.getColumnIndex(NotificationTable.COLUMN_NAME_FULL_DATA));
+                  dataArray.put(new JSONObject(jsonStr));
+               } catch (JSONException e) {
+                  OneSignal.Log(OneSignal.LOG_LEVEL.ERROR, "Could not parse JSON of sub notification in group: " + summaryGroup);
+               }
+            } while (cursor.moveToNext());
+         }
+      } finally {
+         if (null != cursor && !cursor.isClosed()) cursor.close();
       }
-
-      cursor.close();
    }
 
    private static void markNotificationsConsumed(Context context, Intent intent, OneSignalDbHelper writableDb, boolean dismissed) {

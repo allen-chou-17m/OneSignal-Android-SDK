@@ -27,6 +27,8 @@
 
 package com.onesignal;
 
+import static com.onesignal.NotificationLimitManager.MAX_NUMBER_OF_NOTIFICATIONS_STR;
+
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -34,13 +36,12 @@ import android.database.Cursor;
 import android.os.Build;
 import android.os.Bundle;
 import android.service.notification.StatusBarNotification;
+
 import androidx.annotation.RequiresApi;
 
 import com.onesignal.OneSignalDbContract.NotificationTable;
 import com.onesignal.shortcutbadger.ShortcutBadgeException;
 import com.onesignal.shortcutbadger.ShortcutBadger;
-
-import static com.onesignal.NotificationLimitManager.MAX_NUMBER_OF_NOTIFICATIONS_STR;
 
 class BadgeCountUpdater {
 
@@ -97,17 +98,24 @@ class BadgeCountUpdater {
    }
 
    private static void updateFallback(OneSignalDb db, Context context) {
-      Cursor cursor = db.query(
-         NotificationTable.TABLE_NAME,
-         null,
-         OneSignalDbHelper.recentUninteractedWithNotificationsWhere().toString(),
-         null,                                                    // Where args
-         null,                                                    // group by
-         null,                                                    // filter by row groups
-         null,                                                     // sort order, new to old
-         MAX_NUMBER_OF_NOTIFICATIONS_STR
-      );
+      Cursor cursor = null;
+      try {
+         cursor = db.query(
+                 NotificationTable.TABLE_NAME,
+                 null,
+                 OneSignalDbHelper.recentUninteractedWithNotificationsWhere().toString(),
+                 null,                                                    // Where args
+                 null,                                                    // group by
+                 null,                                                    // filter by row groups
+                 null,                                                     // sort order, new to old
+                 MAX_NUMBER_OF_NOTIFICATIONS_STR
+         );
 
+         int notificationCount = cursor.getCount();
+         updateCount(notificationCount, context);
+      } finally {
+         if (null != cursor && !cursor.isClosed()) cursor.close();
+      }
       int notificationCount = cursor.getCount();
       cursor.close();
 

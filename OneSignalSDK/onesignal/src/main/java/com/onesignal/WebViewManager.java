@@ -1,5 +1,8 @@
 package com.onesignal;
 
+import static com.onesignal.OSViewUtils.dpToPx;
+import static com.onesignal.OSViewUtils.getFullbleedWindowWidth;
+
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -19,9 +22,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
-
-import static com.onesignal.OSViewUtils.dpToPx;
-import static com.onesignal.OSViewUtils.getFullbleedWindowWidth;
 
 // Manages WebView instances by pre-loading them, displaying them, and closing them when dismissed.
 //   Includes a static map for pre-loading, showing, and dismissed so these events can't be duplicated.
@@ -349,8 +349,9 @@ class WebViewManager extends ActivityLifecycleHandler.ActivityAvailableListener 
                 if (messageContent.isFullBleed()) {
                     updateSafeAreaInsets();
                 }
-
-                webView.evaluateJavascript(OSJavaScriptInterface.GET_PAGE_META_DATA_JS_FUNCTION, new ValueCallback<String>() {
+                OSWebView currentWebView = webView;
+                if (null == currentWebView) return;
+                currentWebView.evaluateJavascript(OSJavaScriptInterface.GET_PAGE_META_DATA_JS_FUNCTION, new ValueCallback<String>() {
                     @Override
                     public void onReceiveValue(final String value) {
                         try {
@@ -362,7 +363,7 @@ class WebViewManager extends ActivityLifecycleHandler.ActivityAvailableListener 
                     }
                 });
             }
-       });
+        });
     }
 
     @Override
@@ -463,7 +464,10 @@ class WebViewManager extends ActivityLifecycleHandler.ActivityAvailableListener 
     //  it via this SDK's InAppMessageView class. If smaller than the screen it will correctly
     //  set it's height to match.
     private void setWebViewToMaxSize(Activity activity) {
-        webView.layout(0,0, getWebViewMaxSizeX(activity), getWebViewMaxSizeY(activity));
+        OSWebView currentWebView = webView;
+        if (null != currentWebView) {
+            currentWebView.layout(0, 0, getWebViewMaxSizeX(activity), getWebViewMaxSizeY(activity));
+        }
     }
 
     private void setMessageView(InAppMessageView view) {
@@ -474,25 +478,29 @@ class WebViewManager extends ActivityLifecycleHandler.ActivityAvailableListener 
 
     private void createNewInAppMessageView(boolean dragToDismissDisabled) {
         lastPageHeight = messageContent.getPageHeight();
-        InAppMessageView newView = new InAppMessageView(webView, messageContent, dragToDismissDisabled);
-        setMessageView(newView);
-        messageView.setMessageController(new InAppMessageView.InAppMessageViewListener() {
-            @Override
-            public void onMessageWasShown() {
-                OneSignal.getInAppMessageController().onMessageWasShown(message);
-            }
+        OSWebView currentWebView = webView;
+        if (null != currentWebView) {
+            InAppMessageView newView = new InAppMessageView(currentWebView, messageContent, dragToDismissDisabled);
+            setMessageView(newView);
+            if (null == messageView) return;
+            messageView.setMessageController(new InAppMessageView.InAppMessageViewListener() {
+                @Override
+                public void onMessageWasShown() {
+                    OneSignal.getInAppMessageController().onMessageWasShown(message);
+                }
 
-            @Override
-            public void onMessageWillDismiss() {
-                OneSignal.getInAppMessageController().onMessageWillDismiss(message);
-            }
+                @Override
+                public void onMessageWillDismiss() {
+                    OneSignal.getInAppMessageController().onMessageWillDismiss(message);
+                }
 
-            @Override
-            public void onMessageWasDismissed() {
-                OneSignal.getInAppMessageController().messageWasDismissed(message);
-                removeActivityListener();
-            }
-        });
+                @Override
+                public void onMessageWasDismissed() {
+                    OneSignal.getInAppMessageController().messageWasDismissed(message);
+                    removeActivityListener();
+                }
+            });
+        }
 
         final ActivityLifecycleHandler activityLifecycleHandler = ActivityLifecycleListener.getActivityLifecycleHandler();
         // Fires event if available, which will call messageView.showInAppMessageView() for us.

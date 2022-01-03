@@ -1,5 +1,7 @@
 package com.onesignal;
 
+import static android.app.NotificationManager.IMPORTANCE_NONE;
+
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -14,8 +16,6 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import java.util.ArrayList;
-
-import static android.app.NotificationManager.IMPORTANCE_NONE;
 
 public class OneSignalNotificationManager {
 
@@ -137,30 +137,30 @@ public class OneSignalNotificationManager {
         String[] whereArgs = isGroupless ?
                 null :
                 new String[]{group};
+        Cursor cursor = null;
+        try {
+            // Order by timestamp in descending and limit to 1
+            cursor = db.query(OneSignalDbContract.NotificationTable.TABLE_NAME,
+                    null,
+                    whereStr,
+                    whereArgs,
+                    null,
+                    null,
+                    OneSignalDbContract.NotificationTable.COLUMN_NAME_CREATED_TIME + " DESC",
+                    "1");
 
-        // Order by timestamp in descending and limit to 1
-        Cursor cursor = db.query(OneSignalDbContract.NotificationTable.TABLE_NAME,
-                null,
-                whereStr,
-                whereArgs,
-                null,
-                null,
-                OneSignalDbContract.NotificationTable.COLUMN_NAME_CREATED_TIME + " DESC",
-                "1");
+            boolean hasRecord = cursor.moveToFirst();
 
-        boolean hasRecord = cursor.moveToFirst();
+            if (!hasRecord) {
+                cursor.close();
+                return null;
+            }
 
-        if (!hasRecord) {
-            cursor.close();
-            return null;
+            // Get more recent notification id from Cursor
+            return cursor.getInt(cursor.getColumnIndex(OneSignalDbContract.NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID));
+        } finally {
+            if (null != cursor && !cursor.isClosed()) cursor.close();
         }
-
-        // Get more recent notification id from Cursor
-        Integer recentId = cursor.getInt(cursor.getColumnIndex(OneSignalDbContract.NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID));
-
-        cursor.close();
-
-        return recentId;
     }
 
     @Nullable
