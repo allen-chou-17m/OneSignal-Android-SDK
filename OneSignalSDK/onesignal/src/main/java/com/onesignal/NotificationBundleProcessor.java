@@ -137,30 +137,34 @@ class NotificationBundleProcessor {
         processCollapseKey(notificationJob);
 
         int androidNotificationId = notificationJob.getAndroidIdWithoutCreate();
-        boolean doDisplay = shouldDisplayNotification(notificationJob);
-        boolean notificationDisplayed = false;
+        try {
+            boolean doDisplay = shouldDisplayNotification(notificationJob);
+            boolean notificationDisplayed = false;
 
-        if (doDisplay) {
-            androidNotificationId = notificationJob.getAndroidId();
-            if (fromBackgroundLogic && OneSignal.shouldFireForegroundHandlers(notificationJob)) {
-                notificationController.setFromBackgroundLogic(false);
-                OneSignal.fireForegroundHandlers(notificationController);
-                // Notification will be processed by foreground user complete or timer complete
-                return androidNotificationId;
-            } else {
-                // Notification might end not displaying because the channel for that notification has notification disable
-                notificationDisplayed = GenerateNotification.displayNotification(notificationJob);
+            if (doDisplay) {
+                androidNotificationId = notificationJob.getAndroidId();
+                if (fromBackgroundLogic && OneSignal.shouldFireForegroundHandlers(notificationJob)) {
+                    notificationController.setFromBackgroundLogic(false);
+                    OneSignal.fireForegroundHandlers(notificationController);
+                    // Notification will be processed by foreground user complete or timer complete
+                    return androidNotificationId;
+                } else {
+                    // Notification might end not displaying because the channel for that notification has notification disable
+                    notificationDisplayed = GenerateNotification.displayNotification(notificationJob);
+                }
             }
-        }
 
-        if (!notificationJob.isRestoring()) {
-            processNotification(notificationJob, opened, notificationDisplayed);
+            if (!notificationJob.isRestoring()) {
+                processNotification(notificationJob, opened, notificationDisplayed);
 
-            // No need to keep notification duplicate check on memory, we have database check at this point
-            // Without removing duplicate, summary restoration might not happen
-            String osNotificationId = OSNotificationFormatHelper.getOSNotificationIdFromJson(notificationController.getNotificationJob().getJsonPayload());
-            OSNotificationWorkManager.removeNotificationIdProcessed(osNotificationId);
-            OneSignal.handleNotificationReceived(notificationJob);
+                // No need to keep notification duplicate check on memory, we have database check at this point
+                // Without removing duplicate, summary restoration might not happen
+                String osNotificationId = OSNotificationFormatHelper.getOSNotificationIdFromJson(notificationController.getNotificationJob().getJsonPayload());
+                OSNotificationWorkManager.removeNotificationIdProcessed(osNotificationId);
+                OneSignal.handleNotificationReceived(notificationJob);
+            }
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
         }
 
         return androidNotificationId;

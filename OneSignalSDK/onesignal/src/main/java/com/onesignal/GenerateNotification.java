@@ -657,7 +657,10 @@ class GenerateNotification {
          // TODO: We are re-using the notifBuilder from the normal notification so if a developer as an
          //  extender setup all the settings will carry over.
          //  Note: However their buttons will not carry over as we need to be setup with this new summaryNotificationId.
-         summaryBuilder.mActions.clear();
+         try {
+            summaryBuilder.mActions.clear();
+         } catch (Exception ex) {
+         }
          addNotificationActionButtons(
                  fcmJson,
                  intentGenerator,
