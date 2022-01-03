@@ -47,7 +47,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -239,25 +238,21 @@ class NotificationChannelManager {
       if (syncedChannelSet.isEmpty())
          return;
 
-      List<NotificationChannel> existingChannels = new ArrayList<>();
-
       try {
-         existingChannels  = notificationManager.getNotificationChannels();
-      } catch (NullPointerException e) {
-         // Catch issue caused by "Attempt to invoke virtual method 'boolean android.app.NotificationChannel.isDeleted()' on a null object reference"
-         // https://github.com/OneSignal/OneSignal-Android-SDK/issues/1291
-         OneSignal.onesignalLog(OneSignal.LOG_LEVEL.ERROR, "Error when trying to delete notification channel: " + e.getMessage());
-      }
-
-      // Delete old channels - Payload will include all changes for the app. Any extra OS_ ones must
-      //                       have been deleted from the dashboard and should be removed.
-      for (NotificationChannel existingChannel : existingChannels) {
-         String id = existingChannel.getId();
-         if (id.startsWith(CHANNEL_PREFIX) && !syncedChannelSet.contains(id))
-            notificationManager.deleteNotificationChannel(id);
+         List<NotificationChannel> existingChannels = notificationManager.getNotificationChannels();
+         // Delete old channels - Payload will include all changes for the app. Any extra OS_ ones must
+         //                       have been deleted from the dashboard and should be removed.
+         for (NotificationChannel existingChannel : existingChannels) {
+            String id = existingChannel.getId();
+            if (id.startsWith(CHANNEL_PREFIX) && !syncedChannelSet.contains(id)) {
+               notificationManager.deleteNotificationChannel(id);
+            }
+         }
+      } catch (Exception e) {
+         OneSignal.Log(OneSignal.LOG_LEVEL.ERROR, "Could not delete existingChannels", e);
       }
    }
-   
+
    private static int priorityToImportance(int priority) {
       if (priority > 9)
          return NotificationManagerCompat.IMPORTANCE_MAX;
