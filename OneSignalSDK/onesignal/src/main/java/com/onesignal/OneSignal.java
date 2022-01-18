@@ -833,8 +833,9 @@ public class OneSignal {
 
       initDone = true;
       OneSignal.Log(LOG_LEVEL.VERBOSE, "OneSignal SDK initialization done.");
-
-      outcomeEventsController.sendSavedOutcomes();
+      if (outcomeEventsController != null) {
+         outcomeEventsController.sendSavedOutcomes();
+      }
 
       // Clean up any pending tasks that were queued up before initialization
       taskRemoteController.startPendingTasks();
@@ -949,7 +950,9 @@ public class OneSignal {
          logger.debug("Starting new session with appEntryState: " + getAppEntryState());
 
          OneSignalStateSynchronizer.setNewSession();
-         outcomeEventsController.cleanOutcomes();
+         if (outcomeEventsController != null) {
+            outcomeEventsController.cleanOutcomes();
+         }
          sessionManager.restartSessionIfNeeded(getAppEntryState());
          getInAppMessageController().resetSessionLaunchTime();
          setLastSessionTime(time.getCurrentTimeMillis());
