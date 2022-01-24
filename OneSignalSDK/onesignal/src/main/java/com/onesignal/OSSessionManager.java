@@ -166,7 +166,7 @@ public class OSSessionManager {
         logger.debug("OneSignal SessionManager attemptSessionUpgrade try UNATTRIBUTED to INDIRECT upgrade");
         // We will try to override the UNATTRIBUTED session with INDIRECT
         for (OSChannelTracker channelTracker : channelTrackersToReset) {
-            if (channelTracker.getInfluenceType().isUnattributed()) {
+            if (channelTracker.getInfluenceType() != null && channelTracker.getInfluenceType().isUnattributed()) {
                 JSONArray lastIds = channelTracker.getLastReceivedIds();
                 // There are new ids for attribution and the application was open again without resetting session
                 if (lastIds.length() > 0 && !entryAction.isAppClose()) {
