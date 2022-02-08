@@ -139,7 +139,7 @@ abstract class OSBackgroundSync {
         try {
             int result = jobScheduler.schedule(jobBuilder.build());
             OneSignal.Log(OneSignal.LOG_LEVEL.INFO, "OSBackgroundSync scheduleSyncServiceAsJob:result: " + result);
-        } catch (NullPointerException e) {
+        } catch (NullPointerException | IllegalStateException e) {
             // Catch for buggy Oppo devices
             // https://github.com/OneSignal/OneSignal-Android-SDK/issues/487
             OneSignal.Log(OneSignal.LOG_LEVEL.ERROR,
