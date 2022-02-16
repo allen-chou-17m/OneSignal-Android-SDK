@@ -42,6 +42,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.NotificationManagerCompat;
 
 import com.onesignal.OneSignalDbContract.NotificationTable;
+import com.onesignal.utils.CoroutineExecutor;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -132,8 +133,10 @@ class NotificationOpenedProcessor {
       }
 
       // We just opened a summary notification.
-      if (summaryGroup != null)
+      if (summaryGroup != null) {
+         // 17Live looks like not have summaryGroup case...
          addChildNotifications(dataArray, summaryGroup, dbHelper);
+      }
 
       return new OSNotificationIntentExtras(dataArray, jsonData);
    }
@@ -209,8 +212,14 @@ class NotificationOpenedProcessor {
       } else
          whereStr = NotificationTable.COLUMN_NAME_ANDROID_NOTIFICATION_ID + " = " + intent.getIntExtra(BUNDLE_KEY_ANDROID_NOTIFICATION_ID, 0);
 
+      final String whereCondition = whereStr;
+      final String[] whereParams = whereArgs;
       clearStatusBarNotifications(context, writableDb, summaryGroup);
-      writableDb.update(NotificationTable.TABLE_NAME, newContentValuesWithConsumed(intent), whereStr, whereArgs);
+      // we don't care if it update too slow or ignored...
+      CoroutineExecutor.launchIO(() -> {
+         writableDb.update(NotificationTable.TABLE_NAME, newContentValuesWithConsumed(intent), whereCondition, whereParams);
+      });
+      // we don't support version minor than Build.VERSION_CODES.M now
       BadgeCountUpdater.update(writableDb, context);
    }
 

@@ -49,8 +49,9 @@ class BadgeCountUpdater {
    private static int badgesEnabled = -1;
 
    private static boolean areBadgeSettingsEnabled(Context context) {
-      if (badgesEnabled != -1)
+      if (badgesEnabled != -1) {
          return (badgesEnabled == 1);
+      }
 
       try {
          ApplicationInfo ai = context.getPackageManager().getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
@@ -116,10 +117,6 @@ class BadgeCountUpdater {
       } finally {
          if (null != cursor && !cursor.isClosed()) cursor.close();
       }
-      int notificationCount = cursor.getCount();
-      cursor.close();
-
-      updateCount(notificationCount, context);
    }
 
    static void updateCount(int count, Context context) {
