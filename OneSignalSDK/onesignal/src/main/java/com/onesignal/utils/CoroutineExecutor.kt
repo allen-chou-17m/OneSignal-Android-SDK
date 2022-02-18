@@ -1,12 +1,14 @@
 package com.onesignal.utils
 
 import androidx.annotation.AnyThread
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import java.lang.Runnable
+import java.util.concurrent.Executors
 
 object CoroutineExecutor {
+
+    private val singleThreadDispatcher = Executors.newFixedThreadPool(1).asCoroutineDispatcher()
+    private val singleThreadScope = CoroutineScope(SupervisorJob() + singleThreadDispatcher)
 
     @JvmStatic
     @AnyThread
@@ -22,4 +24,14 @@ object CoroutineExecutor {
             runnable.run()
         }
     }
+
+    // Don't call Thread.sleep in your runnable
+    @JvmStatic
+    @AnyThread
+    fun launchInSingleThread(runnable: Runnable) {
+        singleThreadScope.launch {
+            runnable.run()
+        }
+    }
+
 }

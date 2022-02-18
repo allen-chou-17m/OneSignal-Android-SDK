@@ -40,6 +40,7 @@ import android.os.Build;
 import androidx.annotation.RequiresApi;
 
 import com.onesignal.AndroidSupportV4Compat.ContextCompat;
+import com.onesignal.utils.CoroutineExecutor;
 
 abstract class OSBackgroundSync {
 
@@ -114,38 +115,40 @@ abstract class OSBackgroundSync {
     @RequiresApi(21)
     private void scheduleSyncServiceAsJob(Context context, long delayMs) {
         OneSignal.Log(OneSignal.LOG_LEVEL.VERBOSE, "OSBackgroundSync scheduleSyncServiceAsJob:atTime: " + delayMs);
+        // launch in single thread dispatcher for synchronize job queue
+        CoroutineExecutor.launchInSingleThread(() -> {
+            if (isJobIdRunning(context)) {
+                OneSignal.Log(OneSignal.LOG_LEVEL.VERBOSE, "OSBackgroundSync scheduleSyncServiceAsJob Scheduler already running!");
+                // If a JobScheduler is schedule again while running it will stop current job. We will schedule again when finished.
+                // This will avoid InterruptionException due to thread.join() or queue.take() running.
+                needsJobReschedule = true;
+                return;
+            }
 
-        if (isJobIdRunning(context)) {
-            OneSignal.Log(OneSignal.LOG_LEVEL.VERBOSE, "OSBackgroundSync scheduleSyncServiceAsJob Scheduler already running!");
-            // If a JobScheduler is schedule again while running it will stop current job. We will schedule again when finished.
-            // This will avoid InterruptionException due to thread.join() or queue.take() running.
-            needsJobReschedule = true;
-            return;
-        }
+            JobInfo.Builder jobBuilder = new JobInfo.Builder(
+                    getSyncTaskId(),
+                    new ComponentName(context, getSyncServiceJobClass())
+            );
 
-        JobInfo.Builder jobBuilder = new JobInfo.Builder(
-                getSyncTaskId(),
-                new ComponentName(context, getSyncServiceJobClass())
-        );
+            jobBuilder
+                    .setMinimumLatency(delayMs)
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
 
-        jobBuilder
-                .setMinimumLatency(delayMs)
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
+            if (hasBootPermission(context))
+                jobBuilder.setPersisted(true);
 
-        if (hasBootPermission(context))
-            jobBuilder.setPersisted(true);
-
-        JobScheduler jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        try {
-            int result = jobScheduler.schedule(jobBuilder.build());
-            OneSignal.Log(OneSignal.LOG_LEVEL.INFO, "OSBackgroundSync scheduleSyncServiceAsJob:result: " + result);
-        } catch (NullPointerException | IllegalStateException e) {
-            // Catch for buggy Oppo devices
-            // https://github.com/OneSignal/OneSignal-Android-SDK/issues/487
-            OneSignal.Log(OneSignal.LOG_LEVEL.ERROR,
-                    "scheduleSyncServiceAsJob called JobScheduler.jobScheduler which " +
-                            "triggered an internal null Android error. Skipping job.", e);
-        }
+            JobScheduler jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+            try {
+                int result = jobScheduler.schedule(jobBuilder.build());
+                OneSignal.Log(OneSignal.LOG_LEVEL.INFO, "OSBackgroundSync scheduleSyncServiceAsJob:result: " + result);
+            } catch (NullPointerException | IllegalStateException e) {
+                // Catch for buggy Oppo devices
+                // https://github.com/OneSignal/OneSignal-Android-SDK/issues/487
+                OneSignal.Log(OneSignal.LOG_LEVEL.ERROR,
+                        "scheduleSyncServiceAsJob called JobScheduler.jobScheduler which " +
+                                "triggered an internal null Android error. Skipping job.", e);
+            }
+        });
     }
 
     private void scheduleSyncServiceAsAlarm(Context context, long delayMs) {
