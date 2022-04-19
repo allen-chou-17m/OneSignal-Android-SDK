@@ -22,9 +22,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./OneSignalSDK/gradlew
       - name: Build with Gradle
-        run: ./OneSignalSDK/gradlew build
+        run: ./OneSignalSDK/gradlew build -p ./OneSignalSDK
       - name: Deploy to jfrog
         env:
           jfrogUser: ${{ secrets.jfrog_user }}
           jfrogToken: ${{ secrets.jfrog_token }}
-        run: ./OneSignalSDK/gradlew onesignal:assembleRelease onesignal:artifactoryPublish
+        run: ./OneSignalSDK/gradlew onesignal:assembleRelease onesignal:artifactoryPublish -p ./OneSignalSDK
