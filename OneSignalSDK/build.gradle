@@ -35,6 +35,8 @@ buildscript {
         classpath "com.huawei.agconnect:agcp:$huaweiAgconnectVersion"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.24.16"
+
         // OneSignal-Gradle-Plugin - Local testing
         // classpath 'com.onesignal:onesignal-gradle-plugin:[0.8.1, 0.99.99]'
 

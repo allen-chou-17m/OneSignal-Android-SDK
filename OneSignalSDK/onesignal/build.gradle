@@ -7,6 +7,8 @@ ext {
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
+version = "4.6.3"
+
 android {
     compileSdkVersion 30
     defaultConfig {
@@ -30,6 +32,10 @@ android {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_1_8.toString()
         freeCompilerArgs = ['-Xjvm-default=compatibility']
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
@@ -70,4 +76,5 @@ dependencies {
     implementation "com.tencent:mmkv-static:1.2.11"
 }
 
-apply from: 'maven-push.gradle'
+//apply from: 'maven-push.gradle'
+apply from: 'maven-publish.gradle'
