@@ -1,9 +1,8 @@
 apply plugin: "com.jfrog.artifactory"
 apply plugin: "maven-publish"
 
-def JFROG_USER_NAME =  System.getenv("jfrogUser")
+def JFROG_USER_NAME = System.getenv("jfrogUser")
 def JFROG_TOKEN = System.getenv("jfrogToken")
-
 def REPO_KEY = "live17" // should be "live17"
 def MAVEN_LOCAL_PATH = "https://live17.jfrog.io/artifactory/"  // should be "https://live17.jfrog.io/artifactory/"
 def GROUP_ID = "com.live17.sdk" // don't change this
