@@ -22,6 +22,17 @@ publishing {
             version = VERSION_NAME
             artifact(sourceJar) // 還有加這行包source code
             artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
+
+            //generate pom nodes for dependencies
+            pom.withXml {
+                def dependenciesNode = asNode().appendNode('dependencies')
+                configurations.releaseCompileClasspath.allDependencies.each { dependency ->
+                    def dependencyNode = dependenciesNode.appendNode('dependency')
+                    dependencyNode.appendNode('groupId', dependency.group)
+                    dependencyNode.appendNode('artifactId', dependency.name)
+                    dependencyNode.appendNode('version', dependency.version)
+                }
+            }
         }
     }
 }
