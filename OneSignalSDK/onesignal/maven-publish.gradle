@@ -26,7 +26,7 @@ publishing {
             //generate pom nodes for dependencies
             pom.withXml {
                 def dependenciesNode = asNode().appendNode('dependencies')
-                configurations.releaseCompileClasspath.allDependencies.each { dependency ->
+                configurations.releaseRuntimeClasspath.allDependencies.each { dependency ->
                     def dependencyNode = dependenciesNode.appendNode('dependency')
                     dependencyNode.appendNode('groupId', dependency.group)
                     dependencyNode.appendNode('artifactId', dependency.name)
