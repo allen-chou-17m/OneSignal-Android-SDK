@@ -133,10 +133,7 @@ abstract class OSBackgroundSync {
             jobBuilder
                     .setMinimumLatency(delayMs)
                     .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
-
-            if (hasBootPermission(context))
-                jobBuilder.setPersisted(true);
-
+            // do not set persistent! jobScheduler do not accept persist job with network required
             JobScheduler jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
             try {
                 int result = jobScheduler.schedule(jobBuilder.build());
@@ -162,15 +159,19 @@ abstract class OSBackgroundSync {
 
     protected void cancelBackgroundSyncTask(Context context) {
         OneSignal.onesignalLog(OneSignal.LOG_LEVEL.DEBUG, this.getClass().getSimpleName() + " cancel background sync");
-        synchronized (LOCK) {
-            if (useJob()) {
-                JobScheduler jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-                jobScheduler.cancel(getSyncTaskId());
-            } else {
-                AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-                alarmManager.cancel(syncServicePendingIntent(context));
+        // check https://developer.android.com/reference/android/app/job/JobInfo.Builder#addTriggerContentUri(android.app.job.JobInfo.TriggerContentUri)
+        // cancel() could take high cost due to JobScheduler will throttle runaway applications
+        CoroutineExecutor.launchInSingleThread(() -> {
+            synchronized (LOCK) {
+                if (useJob()) {
+                    JobScheduler jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+                    jobScheduler.cancel(getSyncTaskId());
+                } else {
+                    AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+                    alarmManager.cancel(syncServicePendingIntent(context));
+                }
             }
-        }
+        });
     }
 
     private PendingIntent syncServicePendingIntent(Context context) {

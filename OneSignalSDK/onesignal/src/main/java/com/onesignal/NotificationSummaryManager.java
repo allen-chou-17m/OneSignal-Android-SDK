@@ -6,6 +6,7 @@ import android.content.Context;
 import android.database.Cursor;
 
 import com.onesignal.OneSignalDbContract.NotificationTable;
+import com.onesignal.utils.CoroutineExecutor;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -36,15 +37,17 @@ class NotificationSummaryManager {
    
    // Called from an opened / dismissed / cancel event of a single notification to update it's parent the summary notification.
    static void updateSummaryNotificationAfterChildRemoved(Context context, OneSignalDb db, String group, boolean dismissed) {
-      Cursor cursor = null;
-      try {
-         cursor = internalUpdateSummaryNotificationAfterChildRemoved(context, db, group, dismissed);
-      } catch (Throwable t) {
-         OneSignal.Log(OneSignal.LOG_LEVEL.ERROR, "Error running updateSummaryNotificationAfterChildRemoved!", t);
-      } finally {
-         if (cursor != null && !cursor.isClosed())
-            cursor.close();
-      }
+      CoroutineExecutor.launchIO(() -> {
+         Cursor cursor = null;
+         try {
+            cursor = internalUpdateSummaryNotificationAfterChildRemoved(context, db, group, dismissed);
+         } catch (Throwable t) {
+            OneSignal.Log(OneSignal.LOG_LEVEL.ERROR, "Error running updateSummaryNotificationAfterChildRemoved!", t);
+         } finally {
+            if (cursor != null && !cursor.isClosed())
+               cursor.close();
+         }
+      });
    }
 
    private static Cursor internalUpdateSummaryNotificationAfterChildRemoved(Context context, OneSignalDb db, String group, boolean dismissed) {
